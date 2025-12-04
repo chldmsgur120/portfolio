@@ -170,6 +170,57 @@ A와 B는 **문항 구조 / 반응 패턴 / 변수 의미가 완전히 다르기
 | **B 검사** | 모델 B |
 
 ---
+## 1. 데이터셋 분할
+
+- A 검사 학습 데이터: `train_a`
+- B 검사 학습 데이터: `train_b`
+- 각 데이터셋에서:
+  - `Label` 컬럼을 타깃으로 사용  
+  - 나머지 피처를 입력 변수로 사용  
+- `train_test_split`을 이용해 **train : valid = 7 : 3**, `stratify=Label`, `random_state=42`로 분할  
+  - 클래스 비율(0/1)을 유지하면서 검증용 데이터를 분리  
+
+---
+
+## 2. 모델 구조
+
+두 검사 유형 모두 **XGBoost의 XGBClassifier**를 사용하되,  
+A/B 데이터의 불균형 정도가 달라 `scale_pos_weight`만 다르게 설정했습니다.
+
+### 모델 
+
+- 알고리즘: `XGBClassifier`
+- 주요 하이퍼파라미터:
+  - `n_estimators = 300`  (트리 개수)
+  - `max_depth = 50`      (트리 최대 깊이)
+  - `learning_rate = 0.005`
+  - `scale_pos_weight = 43`  (Label 0:1 ≈ 43:1인 불균형 비율 반영) **[model b는 22:1]**
+  - `objective = 'binary:logistic'`  (이진 분류 확률 출력)
+  - `tree_method = 'hist'`           (히스토그램 기반 학습, 속도 향상)
+  - `n_jobs = -1`
+  - `random_state = 42`
+
+→ 두 모델 모두 **클래스 불균형을 `scale_pos_weight`로 보정**해,  
+  위험군(1) 클래스에 더 큰 가중치를 주도록 설계했습니다.
+
+---
+
+## 3. 확률 보정을 위한 Calibration
+
+대회 평가지표에 **Brier Score, ECE(예측 확률의 신뢰도)**가 포함되어 있기 때문에,  
+단순 분류 성능뿐 아니라 **“확률 자체의 품질”**이 중요합니다.
+
+이를 위해 각 XGBoost 모델에 대해 **CalibratedClassifierCV**를 이용해 확률 보정을 수행했습니다.
+
+- 방법: `CalibratedClassifierCV(model, method='isotonic', cv=5)`
+  - `method = 'isotonic'` : 비선형 보정 방식으로, 예측 확률을 실제 빈도에 더 가깝게 맞춤
+  - `cv = 5` : 5-Fold 교차검증으로 안정적인 보정 수행
+- `model_a` → `calibrated_a` 로 보정  
+- `model_b` → `calibrated_b` 로 보정  
+
+최종적으로 **모든 평가지표(AUC, Brier, ECE)와 제출용 예측값은 보정된 모델(calibrated_a / calibrated_b)의 확률을 사용**합니다.
+
+---
 
 # 평가 지표
 
@@ -181,7 +232,7 @@ A와 B는 **문항 구조 / 반응 패턴 / 변수 의미가 완전히 다르기
 
 ---
 
-### 최종 점수 산식
+## 최종 점수 산식
 -Score = 0.5 × (1 − AUC) + 0.25 × Brier + 0.25 × ECE
 
 ---
