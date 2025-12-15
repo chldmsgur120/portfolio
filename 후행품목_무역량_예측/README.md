@@ -141,7 +141,7 @@ CCF 탐색, 모델 학습, 8월 예측까지 **모두 value 하나로만 진행�
 
 ---
 
-**평가지표**
+## 평가지표
 •	평가 산식 : Score = 0.6 × F1 + 0.4 × (1 − NMAE)
 1) F1 = (2 × Precision × Recall) ÷ (Precision + Recall)
 - Precision = TP ÷ (TP + FP)
