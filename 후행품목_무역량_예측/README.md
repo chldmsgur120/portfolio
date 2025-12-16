@@ -161,11 +161,5 @@ CCF 탐색, 모델 학습, 8월 예측까지 **모두 value 하나로만 진행�
 
 ---
 
-## 핵심 요약
-
-- CCF 계산, feature engineering, 모델 학습, 예측 **모든 과정에서 value 하나만 사용**  
-- 공행성(CCF)으로 선행–후행 관계를 도출  
-- follower별 개별 RandomForest 모델로 2025-08 value 예측  
-- value-only 기반의 **공행성 머신러닝 예측 모델**
 
 
